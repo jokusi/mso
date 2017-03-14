@@ -1,15 +1,14 @@
-module Some.ModuleBench (benchs) where
+module Data.FormulaBench (benchs) where
 
-import Some.Module
+import Data.Formula
 
 import Criterion.Main
-
 benchs :: Benchmark
-benchs = bgroup "Some.Module"
-  [ bench_someFunction
-  , bench_someIO
+benchs = bgroup "Data.Formula"
+  [
   ]
 
+{-
 bench_someFunction :: Benchmark
 bench_someFunction = bgroup "someFunction"
   [ bench "1" $ nf someFunction 1
@@ -19,3 +18,4 @@ bench_someFunction = bgroup "someFunction"
 
 bench_someIO :: Benchmark
 bench_someIO = bench "someIO" $ whnfIO someIO
+-}
