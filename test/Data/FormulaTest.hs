@@ -11,9 +11,9 @@ import Test.Tasty.HUnit
 tests :: TestTree
 tests = $(testGroupGenerator)
 
-data Var = P | P' deriving (Show, Read, Eq)
+data Var = P | P' deriving (Show, Read, Eq, Enum, Bounded)
 data Status = Idle | Wait | Crit | Idle' | Wait' | Crit'
-  deriving (Show, Read, Eq)
+  deriving (Show, Read, Eq, Enum, Bounded)
 
 blocking :: Var -> Formula Var Status
 blocking p = Ex (Var1 P') (P' `In` Crit :| (p :< P' :& P' `In` Wait))
@@ -21,7 +21,8 @@ blocking p = Ex (Var1 P') (P' `In` Crit :| (p :< P' :& P' `In` Wait))
 trans :: Var -> Formula Var Status
 trans p
   =  (p `In` Idle :& p `In` Idle' :=> Ex (Var1 P') (P' `In` Wait))
-  :& (p `In` Idle :& p `In` Wait' :=> All (Var1 P') (p :/= P' :=> P' `In` Idle'))
+  :& (p `In` Idle :& p `In` Wait'
+    :=> All (Var1 P') (p :/= P' :=> P' `In` Idle'))
   :& (p `In` Idle :& p `In` Crit' :=> FFalse)
   :& (p `In` Wait :& p `In` Idle' :=> FFalse)
   :& (p `In` Wait :& p `In` Wait' :=> blocking p)
@@ -35,7 +36,13 @@ safety p p'  = p `In` Crit :& p' `In` Crit
 safety' p p' = p `In` Crit' :& p' `In` Crit'
 
 phiSafety :: Formula Var Status
-phiSafety = safety P P' :& trans P :& trans P' :=> safety' P P'
+phiSafety = P :/= P' :=> safety P P' :& trans P :& trans P' :=> safety' P P'
+{-
+prop_safety :: Int -> Bool
+prop_safety size = and $ [ eval size v1 v2 phiSafety
+  | v1 <- genStore1 size [minBound .. maxBound]
+  , v2 <- genStore2 size [minBound .. maxBound]
+  ]
 
 case_safety :: Assertion
 case_safety = assert $ eval 2 store1 store2 phiSafety where
@@ -46,3 +53,4 @@ case_safety = assert $ eval 2 store1 store2 phiSafety where
   store2 Idle' = [1]
   store2 Wait' = [0]
   store2 _     = []
+-}

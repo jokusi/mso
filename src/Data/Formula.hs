@@ -4,6 +4,9 @@ module Data.Formula
   , fromEither
   , toEither
   , eval
+  , solutions
+  , genStore1
+  , genStore2
   ) where
 
 infixl 3 :&,:|
@@ -52,23 +55,21 @@ gen2 = powerset . gen1
 
 genStore1 :: Eq v1 => Int -> [v1] -> [v1 -> Int]
 genStore1 size = foldUpd undefined where
-  foldUpd f (a:as) = [ upd
-    | v1 <- genStore1' a f
-    , upd <- foldUpd v1 as
+  foldUpd f (v:vs) = [ upd
+    | res <- gen1 size
+    , upd <- foldUpd (update f v res) vs
     ]
-  foldUpd _ []     = []
-  genStore1' var1 g = [ update g var1 res | res <- gen1 size]
+  foldUpd f []     = [f]
 
 
 
 genStore2 :: Eq v2 => Int -> [v2] -> [v2 -> [Int]]
 genStore2 size = foldUpd undefined where
-  foldUpd f (a:as) = [ upd
-    | v2 <- genStore2' a f
-    , upd <- foldUpd v2 as
+  foldUpd f (v:vs) = [ upd
+    | res <- gen2 size
+    , upd <- foldUpd (update f v res) vs
     ]
-  foldUpd _ []     = []
-  genStore2' var2 g = [ update g var2 res | res <- gen2 size]
+  foldUpd f []     = [f]
 
 eval
   :: (Eq v1, Eq v2)
@@ -94,13 +95,18 @@ eval size v1 v2 (All (Var2 v) f) = all (\v2upd -> eval size v1 v2upd f)
 eval _ v1 v2 (a `In` as)         = v1 a `elem` v2 as
 eval _ v1 v2 (a `NotIn` as)      = v1 a `notElem` v2 as
 
-solutions :: (Eq v1, Eq v2) => [v1] -> [v2] -> Formula v1 v2 -> [([Int],[[Int]])]
-solutions vars1 vars2 f = [ (map v1 vars1, map v2 vars2)
+data Solution
+  = Solution {var1 :: [Int], var2 :: [[Int]]}
+  | Counter  {var1 :: [Int], var2 :: [[Int]]}
+  deriving (Eq, Read, Show)
+
+solutions
+  :: (Eq v1, Eq v2) => [v1] -> [v2] -> Formula v1 v2 -> [Solution]
+solutions vars1 vars2 f = [ ctor (map v1 vars1) (map v2 vars2)
   | size <- [1..]
   , v1 <- genStore1 size vars1
   , v2 <- genStore2 size vars2
-  , eval size v1 v2 f
+  , let ctor = if eval size v1 v2 f then Solution else Counter
   ]
-
 
 
