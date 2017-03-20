@@ -3,6 +3,7 @@ module Data.Formula
   , Variable(..)
   , fromEither
   , toEither
+  , toBool
   , eval
   , solutions
   , genStore1
@@ -99,6 +100,10 @@ data Solution
   = Solution {var1 :: [Int], var2 :: [[Int]]}
   | Counter  {var1 :: [Int], var2 :: [[Int]]}
   deriving (Eq, Read, Show)
+
+toBool :: Solution -> Bool
+toBool Solution{} = True
+toBool Counter{}  = False
 
 solutions
   :: (Eq v1, Eq v2) => [v1] -> [v2] -> Formula v1 v2 -> [Solution]

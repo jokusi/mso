@@ -14,6 +14,57 @@ tests = $(testGroupGenerator)
 data Var = P | P' deriving (Show, Read, Eq, Enum, Bounded)
 data Status = Idle | Wait | Crit | Idle' | Wait' | Crit'
   deriving (Show, Read, Eq, Enum, Bounded)
+data Gen1 = Gen1 (Var -> Int)
+data Gen2 = Gen2 (Status -> [Int])
+
+instance Arbitrary Gen1 where
+  arbitrary = do
+    let range = (0,1)
+    p <- choose range
+    p' <- choose range
+    let f P  = p
+        f P' = p'
+    return $ Gen1 f
+
+instance Arbitrary Gen2 where
+  arbitrary = do
+    let range :: [Int]
+        range = [0,1]
+    idle <- sublistOf range
+    wait <- sublistOf range
+    crit <- sublistOf range
+    idle' <- sublistOf range
+    wait' <- sublistOf range
+    crit' <- sublistOf range
+    let f Idle = idle
+        f Wait = wait
+        f Crit = crit
+        f Idle' = idle'
+        f Wait' = wait'
+        f Crit' = crit'
+    return $ Gen2 f
+
+instance Show Gen1 where
+  show (Gen1 f) = "Gen1 { P -> "
+    ++ show (f P)
+    ++ "; P' -> "
+    ++ show (f P')
+    ++ "}"
+
+instance Show Gen2 where
+  show (Gen2 f) = "Gen1 { Idle -> "
+    ++ show (f Idle)
+    ++ "; Wait -> "
+    ++ show (f Wait)
+    ++ "; Crit -> "
+    ++ show (f Crit)
+    ++ "; Idle' -> "
+    ++ show (f Idle')
+    ++ "; Wait' -> "
+    ++ show (f Wait')
+    ++ "; Crit' -> "
+    ++ show (f Crit')
+    ++ "}"
 
 blocking :: Var -> Formula Var Status
 blocking p = Ex (Var1 P') (P' `In` Crit :| (p :< P' :& P' `In` Wait))
@@ -32,25 +83,12 @@ trans p
   :& (p `In` Crit :& p `In` Crit' :=> FFalse)
 
 safety, safety' :: Var -> Var -> Formula Var Status
-safety p p'  = p `In` Crit :& p' `In` Crit
-safety' p p' = p `In` Crit' :& p' `In` Crit'
+safety p p'  = Neg (p `In` Crit :& p' `In` Crit)
+safety' p p' = Neg (p `In` Crit' :& p' `In` Crit')
 
 phiSafety :: Formula Var Status
 phiSafety = P :/= P' :=> safety P P' :& trans P :& trans P' :=> safety' P P'
-{-
-prop_safety :: Int -> Bool
-prop_safety size = and $ [ eval size v1 v2 phiSafety
-  | v1 <- genStore1 size [minBound .. maxBound]
-  , v2 <- genStore2 size [minBound .. maxBound]
-  ]
 
-case_safety :: Assertion
-case_safety = assert $ eval 2 store1 store2 phiSafety where
-  store1 P  = 0
-  store1 P' = 1
+prop_safety :: Gen1 -> Gen2 -> Bool
+prop_safety (Gen1 v1) (Gen2 v2) = eval {-numer of processes-}2 v1 v2 phiSafety
 
-  store2 Idle = [0,1]
-  store2 Idle' = [1]
-  store2 Wait' = [0]
-  store2 _     = []
--}
