@@ -81,6 +81,7 @@ trans p
   :& (p `In` Crit :& p `In` Idle' :=> FTrue)
   :& (p `In` Crit :& p `In` Wait' :=> FFalse)
   :& (p `In` Crit :& p `In` Crit' :=> FFalse)
+  :& (p `In` Idle :| p `In` Wait :| p `In` Crit) -- must be in at least on state
 
 safety, safety' :: Var -> Var -> Formula Var Status
 safety p p'  = Neg (p `In` Crit :& p' `In` Crit)
